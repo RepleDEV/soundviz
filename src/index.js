@@ -114,15 +114,16 @@ function autoCorrelate( buf, sampleRate ) {
 		// console.log("f = " + sampleRate/best_offset + "Hz (rms: " + rms + " confidence: " + best_correlation + ")")
 		return sampleRate/best_offset;
 	}
-	return -1;
+	return 0;
 //	var best_frequency = sampleRate/best_offset;
 }
 
 function updatePitch() {
     analyser.getFloatTimeDomainData( buf );
     var ac = autoCorrelate( buf, audioContext.sampleRate );
-    document.getElementById("pitch").innerHTML = Math.floor(map(Math.floor(ac), -1, 20000, 0, 255));
-    setTimeout(updatePitch, 10);
+    console.log(ac)
+    document.getElementById("pitch").innerHTML = Math.floor(1024 - (ac * 1024 / 16000));
+    setTimeout(updatePitch, 100);
 }
 
 function map (val, xlow, xhigh, ylow, yhigh) {
