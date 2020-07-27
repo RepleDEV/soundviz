@@ -70,15 +70,12 @@ function autoCorrelate( buf, sampleRate ) {
 	var best_correlation = 0;
 	var rms = 0;
 	var foundGoodCorrelation = false;
-	var correlations = new Array(MAX_SAMPLES);
+	var correlations = [MAX_SAMPLES];
 
-	for (var i=0;i<SIZE;i++) {
-		var val = buf[i];
-		rms += val*val;
-	}
+    buf.forEach(val => rms+=val**2);
+    
     rms = Math.sqrt(rms/SIZE);
-	// if (rms<0.01) // not enough signal
-	// 	return -1;
+	if (rms<0.01)return 0;
 
 	var lastCorrelation=1;
 	for (var offset = MIN_SAMPLES; offset < MAX_SAMPLES; offset++) {
@@ -121,8 +118,7 @@ function autoCorrelate( buf, sampleRate ) {
 function updatePitch() {
     analyser.getFloatTimeDomainData( buf );
     var ac = autoCorrelate( buf, audioContext.sampleRate );
-    console.log(ac)
-    document.getElementById("pitch").innerHTML = Math.floor(1024 - (ac * 1024 / 16000));
+    document.getElementById("pitch").innerHTML = Math.round(ac);
     setTimeout(updatePitch, 100);
 }
 
