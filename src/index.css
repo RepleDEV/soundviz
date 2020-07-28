@@ -6,14 +6,11 @@ body {
     background-color: white;
 }
 
-#box,#colorbox {
+.box {
     height: 8rem;
     width:8rem;
     border:0;
     border-radius: 1rem;
     background-color: black;
-    margin:0 auto;
-}
-#colorbox {
-    margin-top: 1rem;
+    margin:1rem auto;
 }
