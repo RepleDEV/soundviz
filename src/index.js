@@ -5,7 +5,6 @@ const audioContext = new AudioContext();
 var WIDTH=500;
 var HEIGHT=50;
 var audioStream,meter,analyser;
-var canvasContext = document.getElementById( "meter" ).getContext("2d");
 
 desktopCapturer.getSources({types: ['window', 'screen']}).then(async sources => {
     for (const source of sources) {
@@ -29,97 +28,70 @@ function handleStream(stream) {
 
     analyser = audioContext.createAnalyser();
     analyser.fftSize = 2048;
-    meter = createAudioMeter(audioContext,0.4,0.99);
-    audioStream.connect(meter);
     audioStream.connect(analyser)
 
-    // handleAudioStream();
-    drawLoop();
+    meter = createAudioMeter(audioContext,0.4,0.99);
+    audioStream.connect(meter);
+
+    setBrightness();
+    setColor();
     updatePitch();
 }
 
-function handleAudioStream() {
-    document.getElementById("volume").innerHTML = Math.floor(meter.volume*1000);
-    setTimeout(handleAudioStream, 25);
+const brightnessBox = document.getElementById("box");
+const colorbox = document.getElementById("colorbox");
+
+var volume;
+var pitch;
+var multiplier = 2;
+function setBrightness() {
+    var ceil = 50;
+    volume = meter.volume * 1000 * multiplier;
+    volume = volume > ceil ? ceil : volume;
+    volume = Math.round(map(volume,0,ceil,0,255));
+
+    document.getElementById("volume").innerHTML = volume;
+    brightnessBox.style.backgroundColor = `rgb(${volume},${volume},${volume})`;
+
+    setTimeout(setBrightness, 25);
 }
 
-function drawLoop( time ) {
-    // clear the background
-    canvasContext.clearRect(0,0,WIDTH,HEIGHT);
+function setColor() {
+    var ceil = 16000;
+    var ptch = pitch > ceil ? ceil : pitch;
+    ptch = map(ptch,0,ceil,0,10);
 
-    // check if we're currently clipping
-    if (meter.checkClipping())
-        canvasContext.fillStyle = "red";
-    else
-        canvasContext.fillStyle = "green";
+    var colors = [0,0,0];
 
-    // draw a bar based on the current volume
-    canvasContext.fillRect(0, 0, meter.volume*WIDTH*1.4, HEIGHT);
-
-    // set up the next visual callback
-    rafID = window.requestAnimationFrame( drawLoop );
-}
-
-var MIN_SAMPLES = 0;  // will be initialized when AudioContext is created.
-var GOOD_ENOUGH_CORRELATION = 0.9; // this is the "bar" for how close a correlation needs to be
-var buf = new Float32Array( 1024 );
-function autoCorrelate( buf, sampleRate ) {
-	var SIZE = buf.length;
-	var MAX_SAMPLES = Math.floor(SIZE/2);
-	var best_offset = -1;
-	var best_correlation = 0;
-	var rms = 0;
-	var foundGoodCorrelation = false;
-	var correlations = [MAX_SAMPLES];
-
-    buf.forEach(val => rms+=val**2);
-    
-    rms = Math.sqrt(rms/SIZE);
-	if (rms<0.01)return 0;
-
-	var lastCorrelation=1;
-	for (var offset = MIN_SAMPLES; offset < MAX_SAMPLES; offset++) {
-		var correlation = 0;
-
-		for (var i=0; i<MAX_SAMPLES; i++) {
-			correlation += Math.abs((buf[i])-(buf[i+offset]));
-		}
-		correlation = 1 - (correlation/MAX_SAMPLES);
-		correlations[offset] = correlation; // store it, for the tweaking we need to do below.
-		if ((correlation>GOOD_ENOUGH_CORRELATION) && (correlation > lastCorrelation)) {
-			foundGoodCorrelation = true;
-			if (correlation > best_correlation) {
-				best_correlation = correlation;
-				best_offset = offset;
-			}
-		} else if (foundGoodCorrelation) {
-			// short-circuit - we found a good correlation, then a bad one, so we'd just be seeing copies from here.
-			// Now we need to tweak the offset - by interpolating between the values to the left and right of the
-			// best offset, and shifting it a bit.  This is complex, and HACKY in this code (happy to take PRs!) -
-			// we need to do a curve fit on correlations[] around best_offset in order to better determine precise
-			// (anti-aliased) offset.
-
-			// we know best_offset >=1, 
-			// since foundGoodCorrelation cannot go to true until the second pass (offset=1), and 
-			// we can't drop into this clause until the following pass (else if).
-			var shift = (correlations[best_offset+1] - correlations[best_offset-1])/correlations[best_offset];  
-			return sampleRate/(best_offset+(8*shift));
-		}
-		lastCorrelation = correlation;
+    if (ptch < 5) {
+        if (ptch < 2.5) {
+            colors[2] = 255;
+            colors[1] = ptch / 2.5 * 255;
+        } else if (ptch > 2.5) {
+            colors[1] = 255;
+            colors[2] = (ptch - 2.5) / 2.5 * 255;
+        } else {
+            colors[1],colors[2] = 255,255;
+        }
+    } else if (ptch > 5) {
+        if (ptch < 7.5) {
+            colors[1] = 255;
+            colors[0] = (ptch - 5) / 2.5 * 255;
+        } else if (ptch > 7.5) {
+            console.log((ptch-7.5) / 2.5 * 255);
+            colors[0] = 255;
+            colors[1] = (ptch - 7.5) / 2.5 * 255;
+        } else {
+            colors[0],colors[1] = 255,255;
+        }
+    } else {
+        colors[1] = 255;
     }
-	if (best_correlation > 0.01) {
-		// console.log("f = " + sampleRate/best_offset + "Hz (rms: " + rms + " confidence: " + best_correlation + ")")
-		return sampleRate/best_offset;
-	}
-	return 0;
-//	var best_frequency = sampleRate/best_offset;
-}
+    
+    var color = `rgb(${colors[0]},${colors[1]},${colors[2]})`;
+    colorbox.style.backgroundColor = color;
 
-function updatePitch() {
-    analyser.getFloatTimeDomainData( buf );
-    var ac = autoCorrelate( buf, audioContext.sampleRate );
-    document.getElementById("pitch").innerHTML = Math.round(ac);
-    setTimeout(updatePitch, 100);
+    setTimeout(setColor, 25);
 }
 
 function map (val, xlow, xhigh, ylow, yhigh) {
