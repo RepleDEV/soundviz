@@ -36,10 +36,12 @@ function handleStream(stream) {
     setBrightness();
     setColor();
     updatePitch();
+    calculateAll();
 }
 
 const brightnessBox = document.getElementById("box");
 const colorbox = document.getElementById("colorbox");
+const mixbox = document.getElementById("mixbox");
 
 var volume;
 var pitch;
@@ -58,8 +60,8 @@ function setBrightness() {
 
 var multiplier_buffer = [];
 var multiplier_samples = 16;
-function updateMultiplier(average = 220) {
-    if (pitch < 440) {
+function updateMultiplier(average = 220, clip = 440) {
+    if (pitch < clip) {
         return;
     }
     if (multiplier_buffer.length < multiplier_samples) {
@@ -90,32 +92,35 @@ function setColor() {
             colors[1] = ptch / 2.5 * 255;
         } else if (ptch > 2.5) {
             colors[1] = 255;
-            colors[2] = (ptch - 2.5) / 2.5 * 255;
+            colors[2] = 255 - ((ptch - 2.5) / 2.5 * 255);
         } else {
             colors[1],colors[2] = 255,255;
         }
+        colors[0] = 0;
     } else if (ptch > 5) {
         if (ptch < 7.5) {
             colors[1] = 255;
-            colors[0] = (ptch - 5) / 2.5 * 255;
+            colors[0] = 255 - ((ptch - 5) / 2.5 * 255);
         } else if (ptch > 7.5) {
             colors[0] = 255;
-            colors[1] = (ptch - 7.5) / 2.5 * 255;
+            colors[1] = 255 - ((ptch - 7.5) / 2.5 * 255);
         } else {
             colors[0],colors[1] = 255,255;
         }
+        colors[2] = 0;
     } else {
         colors[1] = 255;
     }
     
     var color = `rgb(${colors[0]},${colors[1]},${colors[2]})`;
     colorbox.style.backgroundColor = color;
-
     setTimeout(setColor, 25);
 }
 
-function calculateAll(volume, pitch) {
-    
+function calculateAll() {
+    var values = colors.map(val => val * (volume / 255));
+    mixbox.style.backgroundColor = `rgb(${values[0]},${values[1]},${values[2]})`;
+    setTimeout(calculateAll, 25);
 }
 
 function map (val, xlow, xhigh, ylow, yhigh) {
