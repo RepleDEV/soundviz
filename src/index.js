@@ -45,7 +45,7 @@ const mixbox = document.getElementById("mixbox");
 
 var volume;
 var pitch;
-var multiplier = 0.4;
+var multiplier = 2;
 function setBrightness() {
     var ceil = 50;
     volume = meter.volume * 1000 * multiplier;
@@ -60,6 +60,12 @@ function setBrightness() {
 
 var multiplier_buffer = [];
 var multiplier_samples = 16;
+
+/**
+   * Updates the volume multiplier variable
+   @param average The expected average of the sampled volumes
+   @param clip If pitch goes below this, it stops the execution of the function
+*/
 function updateMultiplier(average = 220, clip = 440) {
     if (pitch < clip) {
         return;
@@ -83,33 +89,32 @@ function updateMultiplier(average = 220, clip = 440) {
 var colors = [0,0,0];
 function setColor() {
     var ceil = 16000;
-    var ptch = pitch > ceil ? ceil : pitch;
-    ptch = map(ptch,0,ceil,0,10);
+    pitch = pitch > ceil ? ceil : pitch;
+    pitch = map(pitch,0,ceil,0,100);
 
-    if (ptch < 5) {
-        if (ptch < 2.5) {
+
+    if (pitch < 50) {
+        if (pitch < 25) {
             colors[2] = 255;
-            colors[1] = ptch / 2.5 * 255;
-        } else if (ptch > 2.5) {
+            colors[1] = pitch / 25 * 255;
+        } else if (pitch > 25) {
             colors[1] = 255;
-            colors[2] = 255 - ((ptch - 2.5) / 2.5 * 255);
+            colors[2] = 255 - (pitch / 25 * 255); 
         } else {
             colors[1],colors[2] = 255,255;
         }
         colors[0] = 0;
-    } else if (ptch > 5) {
-        if (ptch < 7.5) {
+    } else if (pitch > 50) {
+        if (pitch < 75) {
             colors[1] = 255;
-            colors[0] = 255 - ((ptch - 5) / 2.5 * 255);
-        } else if (ptch > 7.5) {
+            colors[0] = (pitch - 50) / 25 * 255
+        } else if (pitch > 75) {
             colors[0] = 255;
-            colors[1] = 255 - ((ptch - 7.5) / 2.5 * 255);
+            colors[1] = 255 - ((pitch - 75) / 25 * 255);
         } else {
-            colors[0],colors[1] = 255,255;
+            colors[0], colors[1] = 255,255;
         }
         colors[2] = 0;
-    } else {
-        colors[1] = 255;
     }
     
     var color = `rgb(${colors[0]},${colors[1]},${colors[2]})`;
